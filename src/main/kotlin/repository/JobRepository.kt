@@ -46,13 +46,15 @@ class JobRepository {
     suspend fun update(
         id: Int,
         description: String? = null,
-        lastRunAt: LocalDateTime,
+        status: JobStatus,
+        lastRunAt: LocalDateTime?,
         failedCount: Int
     ) {
         return newSuspendedTransaction {
             logger.info { "[JobRepository:update] with id: $id" }
             Jobs.update({ Jobs.id eq id }) {
                 it[this.description] = description
+                it[this.status] = status
                 it[this.lastRunAt] = lastRunAt
                 it[this.failedCount] = failedCount
                 it[updatedAt] = LocalDateTime.now()

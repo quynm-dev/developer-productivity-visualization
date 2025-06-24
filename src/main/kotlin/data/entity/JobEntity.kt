@@ -24,7 +24,7 @@ object Jobs: IntIdTable("jobs") {
     val repositoryName = text("repository_name")
     val status = enumerationByName("status", 255, JobStatus::class)
     val description = text("description").nullable().default(null)
-    val lastRunAt = datetime("last_run_at").defaultExpression(CurrentDateTime)
+    val lastRunAt = datetime("last_run_at").nullable()
     val failedCount = integer("failed_count").default(0)
     val createdAt = datetime("created_at").defaultExpression(CurrentDateTime)
     val updatedAt = datetime("updated_at").defaultExpression(CurrentDateTime)

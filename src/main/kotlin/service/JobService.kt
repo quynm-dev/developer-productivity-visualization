@@ -1,5 +1,6 @@
 package com.dpv.service
 
+import com.dpv.data.enum.JobStatus
 import com.dpv.data.model.JobModel
 import com.dpv.helper.UniResult
 import com.dpv.helper.ok
@@ -21,14 +22,19 @@ class JobService(
         return jobRepository.findAll().ok()
     }
 
+    suspend fun findFailedJobs(): UniResult<List<JobModel>> {
+        logger.info { "[JobService:findFailedJobs]" }
+        return jobRepository.findAll().filter { it.status == JobStatus.FAILED }.ok()
+    }
+
     suspend fun create(repoName: String): UniResult<Int> {
         logger.info { "[JobService:create] with repoName: $repoName" }
         return jobRepository.create(repoName).ok()
     }
 
-    suspend fun update(id: Int, description: String? = null, lastRunAt: LocalDateTime,failedCount: Int): UniResult<Unit> {
+    suspend fun update(id: Int, description: String? = null, status: JobStatus, lastRunAt: LocalDateTime?,failedCount: Int): UniResult<Unit> {
         logger.info { "[JobService:update] with id: $id" }
-        return jobRepository.update(id, description, lastRunAt, failedCount).ok()
+        return jobRepository.update(id, description, status, lastRunAt, failedCount).ok()
     }
 
     suspend fun delete(id: Int): UniResult<Unit> {

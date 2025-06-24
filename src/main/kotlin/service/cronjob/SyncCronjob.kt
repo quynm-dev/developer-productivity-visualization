@@ -6,6 +6,7 @@ import com.cronutils.model.definition.CronDefinitionBuilder
 import com.cronutils.model.time.ExecutionTime
 import com.cronutils.parser.CronParser
 import com.dpv.config.ApplicationConfigurer
+import com.dpv.data.enum.JobStatus
 import com.dpv.helper.UniResult
 import com.dpv.helper.err
 import com.dpv.helper.getProperty
@@ -81,11 +82,16 @@ class SyncCronjob(
 
     private suspend fun retryFailedJobs(): UniResult<Unit> {
         logger.info { "[SyncCronjob] Retrying failed jobs" }
-        val failedJobs = jobService.findAll().getOrElse { findAllErr ->
-            return findAllErr.err()
+        val failedJobs = jobService.findFailedJobs().getOrElse { findFailedJobsErr ->
+            return findFailedJobsErr.err()
         }
 
         failedJobs.forEach { job ->
+            jobService.update(job.id, job.description, JobStatus.IN_PROGRESS, job.lastRunAt, job.failedCount).getOrElse { updateErr ->
+                return updateErr.err()
+            }
+
+            val lastRunAt = LocalDateTime.now()
             githubService.sync(job.repoName).mapBoth(
                 success = {
                     jobService.delete(job.id).getOrElse { deleteErr ->
@@ -93,7 +99,7 @@ class SyncCronjob(
                     }
                 },
                 failure = { syncErr ->
-                    jobService.update(job.id, description = syncErr.message, lastRunAt = LocalDateTime.now(), failedCount = job.failedCount + 1).getOrElse { updateErr ->
+                    jobService.update(job.id, description = syncErr.message, JobStatus.FAILED, lastRunAt = lastRunAt, failedCount = job.failedCount + 1).getOrElse { updateErr ->
                         return updateErr.err()
                     }
                 }
