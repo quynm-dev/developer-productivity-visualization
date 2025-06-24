@@ -17,6 +17,13 @@ class RepositoryRepository {
         private val logger = KotlinLogging.logger {}
     }
 
+    suspend fun findAll(): List<RepositoryModel> {
+        return newSuspendedTransaction {
+            logger.info { "[RepositoryRepository:getAll]" }
+            RepositoryEntity.all().map { it.toModel() }
+        }
+    }
+
     suspend fun findById(id: Long): RepositoryModel? {
         return newSuspendedTransaction {
             logger.info { "[RepositoryRepository:findById] with id: $id" }

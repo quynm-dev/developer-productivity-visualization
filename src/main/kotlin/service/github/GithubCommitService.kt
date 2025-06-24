@@ -1,6 +1,6 @@
 package com.dpv.service.github
 
-import com.dpv.client.RestClient
+import com.dpv.client.GithubClient
 import com.dpv.data.dto.github.CommitDto
 import com.dpv.error.AppError
 import com.dpv.error.GITHUB_ERROR_CODE_FACTORY
@@ -17,13 +17,13 @@ import java.time.format.DateTimeFormatter
 @Singleton
 class GithubCommitService(
     environment: ApplicationEnvironment,
-    private val restClient: RestClient,
+    private val githubClient: GithubClient,
 ) : GithubConfiguration(environment) {
     suspend fun getCommits(
         since: LocalDateTime? = null, until: LocalDateTime? = null, url: String,
         perPage: Int = 30, page: Int = 1
     ): UniResult<List<CommitDto>> {
-        val response = restClient.get(url) {
+        val response = githubClient.get(url) {
             authorization = AUTHORIZATION
             configureHeaders {
                 appendAll(xGithubApiVersionHeader)

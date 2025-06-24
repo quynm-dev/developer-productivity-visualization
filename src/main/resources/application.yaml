@@ -16,3 +16,6 @@ github:
   pat: "pat"
   baseUrl: "https://api.github.com"
   xGithubApiVersion: "2022-11-28"
+
+sync-cronjob:
+  expression: "0 0 * * 1" # Every Monday at 00:00 UTC

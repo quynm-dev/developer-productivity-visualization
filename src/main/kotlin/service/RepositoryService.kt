@@ -19,6 +19,11 @@ class RepositoryService(
         private val logger = KotlinLogging.logger {}
     }
 
+    suspend fun findAll(): UniResult<List<RepositoryModel>> {
+        logger.info { "[RepositoryService:findAll]" }
+        return repoRepository.findAll().ok()
+    }
+
     suspend fun findById(id: Long): UniResult<RepositoryModel> {
         val repo = repoRepository.findById(id)
         if (repo == null) {

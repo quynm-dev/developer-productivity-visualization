@@ -11,8 +11,8 @@ fun main(args: Array<String>) {
 }
 
 fun Application.module() {
-    configureDI()
     configureDB()
+    configureDI()
     configureRouting()
     configureSerialization()
 }

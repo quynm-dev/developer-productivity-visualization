@@ -3,7 +3,7 @@ CREATE TABLE repositories
     id           BIGINT              NOT NULL AUTO_INCREMENT,
     name         VARCHAR(255) UNIQUE NOT NULL,
     github_url   TEXT                NOT NULL,
-    user_id     BIGINT              NOT NULL,
+    user_id      BIGINT              NOT NULL,
     language     VARCHAR(255)        NOT NULL,
     pulls_url    TEXT                NOT NULL,
     commits_url  TEXT                NOT NULL,

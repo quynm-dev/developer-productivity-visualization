@@ -1,6 +1,6 @@
 package com.dpv.service.github
 
-import com.dpv.client.RestClient
+import com.dpv.client.GithubClient
 import com.dpv.data.dto.github.RepositoryDto
 import com.dpv.error.AppError
 import com.dpv.error.GITHUB_ERROR_CODE_FACTORY
@@ -14,10 +14,10 @@ import org.koin.core.annotation.Singleton
 @Singleton
 class GithubRepositoryService(
     environment: ApplicationEnvironment,
-    private val restClient: RestClient
+    private val githubClient: GithubClient
 ) : GithubConfiguration(environment) {
     suspend fun getRepo(name: String): UniResult<RepositoryDto> {
-        val response = restClient.get(BASE_URL + REPOS_PREFIX + name) {
+        val response = githubClient.get(BASE_URL + REPOS_PREFIX + name) {
             authorization = AUTHORIZATION
             configureHeaders {
                 appendAll(xGithubApiVersionHeader)

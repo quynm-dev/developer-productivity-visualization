@@ -1,9 +1,7 @@
 package com.dpv.service.github
 
-import com.dpv.client.RestClient
 import com.dpv.data.dto.github.CommitDto
 import com.dpv.data.dto.github.PullDto
-import com.dpv.data.dto.github.RateLimitDto
 import com.dpv.data.dto.github.UserDto
 import com.dpv.data.model.RepositoryModel
 import com.dpv.error.AppError
@@ -22,7 +20,6 @@ import java.time.LocalDateTime
 @Singleton
 class GithubService(
     environment: ApplicationEnvironment,
-    private val restClient: RestClient,
     private val repoService: RepositoryService,
     private val commitService: CommitService,
     private val userService: UserService,
@@ -36,22 +33,7 @@ class GithubService(
         private val logger = KotlinLogging.logger {}
     }
 
-    suspend fun getRateLimit(): UniResult<RateLimitDto> {
-        val response = restClient.get(BASE_URL) {
-            authorization = AUTHORIZATION
-            path(RATE_LIMIT_PATH)
-            configureHeaders {
-                appendAll(xGithubApiVersionHeader)
-            }
-        }
-
-        return response.deserializeIgnoreKeysWhen<RateLimitDto> {
-            return AppError.new(GITHUB_ERROR_CODE_FACTORY.INTERNAL_SERVER_ERROR, "Failed to get rate limit").err()
-        }.ok()
-    }
-
     suspend fun sync(repoName: String): UniResult<Unit> {
-        // check rate limit
         logger.info { "[GithubService:sync] Start" }
         val repo = getOrCreateRepoByName(repoName).getOrElse { getOrCreateRepoErr ->
             return getOrCreateRepoErr.err()
@@ -68,7 +50,7 @@ class GithubService(
             return syncPullsErr.err()
         }
 
-        logger.info { "[GithubService:sync] Start" }
+        logger.info { "[GithubService:sync] End" }
         return Unit.ok()
     }
 

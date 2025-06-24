@@ -1,6 +1,6 @@
 package com.dpv.service.github
 
-import com.dpv.client.RestClient
+import com.dpv.client.GithubClient
 import com.dpv.data.dto.github.PullDto
 import com.dpv.error.AppError
 import com.dpv.error.GITHUB_ERROR_CODE_FACTORY
@@ -16,14 +16,14 @@ import org.koin.core.annotation.Singleton
 @Singleton
 class GithubPullService(
     environment: ApplicationEnvironment,
-    private val restClient: RestClient
+    private val githubClient: GithubClient
 ) : GithubConfiguration(environment) {
     companion object {
         private val logger = KotlinLogging.logger {}
     }
 
     suspend fun getPulls(url: String, base: String? = null, perPage: Int = 30, page: Int = 1): UniResult<List<PullDto>> {
-        val response = restClient.get(url) {
+        val response = githubClient.get(url) {
             authorization = AUTHORIZATION
             configureHeaders {
                 appendAll(xGithubApiVersionHeader)

@@ -20,6 +20,7 @@ mysql-connector-j = "8.3.0"
 
 # Util
 result = "1.1.17"
+cronutils = "9.2.0"
 
 # Testing
 h2 = "2.2.220"
@@ -78,6 +79,7 @@ redis = { module = "redis.clients:jedis", version.ref = "redis" }
 
 # Util
 kotlin-result = { module = "com.michael-bull.kotlin-result:kotlin-result", version.ref = "result" }
+cronutils = { module = "com.cronutils:cron-utils", version.ref = "cronutils" }
 
 # Testing
 h2 = { module = "com.h2database:h2", version.ref = "h2" }
@@ -136,7 +138,8 @@ db = [
 ]
 
 util = [
-    "kotlin-result"
+    "kotlin-result",
+    "cronutils"
 ]
 
 testing = [

@@ -12,7 +12,6 @@ import io.ktor.serialization.kotlinx.json.*
 import mu.KotlinLogging
 import org.koin.core.annotation.Factory
 
-
 class RestConfig<T>(var url: String, var body: T? = null) {
     lateinit var authorization: String
     var contentType: ContentType = ContentType.Application.Json
