@@ -8,7 +8,6 @@ import com.dpv.helper.UniResult
 import com.dpv.helper.deserializeIgnoreKeysWhen
 import com.dpv.helper.err
 import com.dpv.helper.ok
-import io.ktor.http.*
 import io.ktor.server.application.*
 import mu.KotlinLogging
 import org.koin.core.annotation.Singleton
@@ -28,11 +27,11 @@ class GithubPullService(
             configureHeaders {
                 appendAll(xGithubApiVersionHeader)
             }
-            parameters {
-                base?.let { append("base", it) }
-                append("per_page", perPage.toString())
-                append("page", page.toString())
-                append("state", "all")
+            url {
+                base?.let { parameters.append("base", it) }
+                parameters.append("per_page", perPage.toString())
+                parameters.append("page", page.toString())
+                parameters.append("state", "all")
             }
         }
 

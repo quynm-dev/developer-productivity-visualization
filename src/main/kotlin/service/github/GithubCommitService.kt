@@ -8,7 +8,6 @@ import com.dpv.helper.UniResult
 import com.dpv.helper.deserializeIgnoreKeysWhen
 import com.dpv.helper.err
 import com.dpv.helper.ok
-import io.ktor.http.*
 import io.ktor.server.application.*
 import org.koin.core.annotation.Singleton
 import java.time.LocalDateTime
@@ -28,11 +27,11 @@ class GithubCommitService(
             configureHeaders {
                 appendAll(xGithubApiVersionHeader)
             }
-            parameters {
-                since?.let { append("since", since.format(DateTimeFormatter.ISO_DATE_TIME)) }
-                until?.let { append("until", until.format(DateTimeFormatter.ISO_DATE_TIME)) }
-                append("per_page", perPage.toString())
-                append("page", page.toString())
+            url {
+                since?.let { parameters.append("since", since.format(DateTimeFormatter.ISO_DATE_TIME)) }
+                until?.let { parameters.append("until", until.format(DateTimeFormatter.ISO_DATE_TIME)) }
+                parameters.append("per_page", perPage.toString())
+                parameters.append("page", page.toString())
             }
         }
 
