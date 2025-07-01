@@ -13,9 +13,7 @@ import com.dpv.service.RepositoryService
 import com.dpv.service.UserService
 import com.github.michaelbull.result.getOrElse
 import io.ktor.server.application.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import mu.KotlinLogging
 import org.koin.core.annotation.Singleton
 import java.time.LocalDateTime
@@ -34,6 +32,7 @@ class GithubService(
 ) : GithubConfiguration(environment) {
     companion object {
         private val logger = KotlinLogging.logger {}
+        private const val BATCH_SIZE = 10
     }
 
     suspend fun sync(repoName: String): UniResult<Unit> {
@@ -58,34 +57,40 @@ class GithubService(
     }
 
     suspend fun syncCommits(since: LocalDateTime? = null, until: LocalDateTime? = null, commitsUrl: String): UniResult<Unit> {
-        var page = 1
-        val perPage = 30
-        while(true) {
-            val commits = githubCommitService.getCommits(since, until, commitsUrl, perPage, page).getOrElse { getCommitsErr ->
-                return getCommitsErr.err()
-            }
+        val commits = mutableListOf<CommitDto>()
 
-            if(commits.isEmpty()) {
-                logger.info { "[GithubService:syncCommits] Finished" }
-                return Unit.ok()
-            }
+        coroutineScope {
+            var iteration = 0
+            var error: AppError? = null
+            var hitLastPage = false
 
-            CoroutineScope(Dispatchers.IO).launch {
-                syncCommitsPerPage(commits).getOrElse { syncCommitsWithDBErr ->
-                    logger.error { "[GithubService:syncCommits] Error syncing commits: ${syncCommitsWithDBErr.message}" }
-                    // handle coroutine error
+            while(!hitLastPage && error == null) {
+                val batchResults = (1..BATCH_SIZE).map { batchIndex ->
+                    async {
+                        githubCommitService.getCommits(since, until, commitsUrl, page = batchIndex + iteration * BATCH_SIZE)
+                    }
+                }.awaitAll()
+                iteration += 1
+
+                batchResults.forEach { result ->
+                    val data = result.getOrElse { err ->
+                        error = err
+                        return@coroutineScope
+                    }
+                    hitLastPage = hitLastPage || data.isEmpty()
+                    commits.addAll(data)
                 }
             }
-
-            page += 1
         }
+
+        return syncCommitsWithDB(commits)
     }
 
-    suspend fun syncCommitsPerPage(commits: List<CommitDto>): UniResult<Unit> {
+    suspend fun syncCommitsWithDB(commits: List<CommitDto>): UniResult<Unit> {
         val existUserIds = mutableListOf<Long>()
         val newCommits = mutableListOf<CommitDto>()
         commits.forEach { commit ->
-            if(!existUserIds.contains(commit.author.id)) {
+            if(commit.author?.id != null && !existUserIds.contains(commit.author.id)) {
                 userService.validateExistence(commit.author.id).getOrElse { validateExistenceErr ->
                     if (!validateExistenceErr.hasCode(GITHUB_ERROR_CODE_FACTORY.NOT_FOUND)) {
                         return validateExistenceErr.err()
@@ -125,30 +130,36 @@ class GithubService(
     }
 
     suspend fun syncPulls(pullsUrl: String): UniResult<Unit> {
-        var page = 1
-        val perPage = 30
-        while(true) {
-            val pulls = githubPullService.getPulls(pullsUrl, null, perPage, page).getOrElse {
-                return AppError.new(GITHUB_ERROR_CODE_FACTORY.INTERNAL_SERVER_ERROR, "Failed to get pulls").err()
-            }
+        val pulls = mutableListOf<PullDto>()
 
-            if(pulls.isEmpty()) {
-                logger.info { "[GithubService:syncPulls] Finished" }
-                return Unit.ok()
-            }
+        coroutineScope {
+            var iteration = 0
+            var error: AppError? = null
+            var hitLastPage = false
 
-            CoroutineScope(Dispatchers.IO).launch {
-                syncPullsPerPage(pulls).getOrElse { syncPullsWithDBErr ->
-                    logger.error { "[GithubService:syncPulls] Error syncing pulls: ${syncPullsWithDBErr.message}" }
-                    // handle coroutine error
+            while(!hitLastPage && error == null) {
+                val batchResults = (1..BATCH_SIZE).map { batchIndex ->
+                    async {
+                        githubPullService.getPulls(pullsUrl, null, page = batchIndex + iteration * BATCH_SIZE)
+                    }
+                }.awaitAll()
+                iteration += 1
+
+                batchResults.forEach { result ->
+                    val data = result.getOrElse { err ->
+                        error = err
+                        return@coroutineScope
+                    }
+                    hitLastPage = hitLastPage || data.isEmpty()
+                    pulls.addAll(data)
                 }
             }
-
-            page += 1
         }
+
+        return syncPullsWithDB(pulls)
     }
 
-    suspend fun syncPullsPerPage(pulls: List<PullDto>): UniResult<Unit> {
+    suspend fun syncPullsWithDB(pulls: List<PullDto>): UniResult<Unit> {
         val newUsers = mutableListOf<UserDto>()
         val newPulls = mutableListOf<PullDto>()
         val existUserIds = mutableListOf<Long>()

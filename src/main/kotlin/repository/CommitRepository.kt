@@ -37,7 +37,7 @@ class CommitRepository {
             logger.info { "[CommitRepository:bulkCreate]" }
             Commits.batchInsert(commitDtos) { commitDto ->
                 this[Commits.hash] = commitDto.sha
-                this[Commits.userId] = commitDto.author.id
+                this[Commits.userId] = commitDto.author?.id
                 this[Commits.githubUrl] = commitDto.commit.url
                 this[Commits.message] = commitDto.commit.message
                 this[Commits.commitedAt] = commitDto.commit.author.date
@@ -58,7 +58,7 @@ class CommitRepository {
         return newSuspendedTransaction {
             logger.info { "[CommitRepository:update] with hash: $hash" }
             Commits.update({ Commits.hash eq hash }) {
-                it[userId] = commitDto.author.id
+                it[userId] = commitDto.author?.id
                 it[githubUrl] = commitDto.commit.url
                 it[message] = commitDto.commit.message
                 it[commitedAt] = commitDto.commit.author.date

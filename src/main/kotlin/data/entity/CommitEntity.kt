@@ -21,7 +21,7 @@ class CommitEntity(id: EntityID<Long>): LongEntity(id) {
 
 object Commits: LongIdTable("commits") {
     val hash = varchar("hash", 255).uniqueIndex()
-    val userId = reference("user_id", Users)
+    val userId = reference("user_id", Users).nullable()
     val githubUrl = text("github_url")
     val message = text("message")
     val commitedAt = datetime("committed_at")

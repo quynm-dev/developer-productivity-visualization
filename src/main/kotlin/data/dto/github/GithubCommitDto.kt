@@ -9,7 +9,7 @@ import java.time.LocalDateTime
 data class CommitDto(
     val sha: String,
     val commit: CommitCommit,
-    val author: CommitAuthor
+    val author: CommitAuthor? = null
 )
 
 @Serializable
