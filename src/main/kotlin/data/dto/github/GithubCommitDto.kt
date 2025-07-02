@@ -9,14 +9,14 @@ import java.time.LocalDateTime
 data class CommitDto(
     val sha: String,
     val commit: CommitCommit,
-    val author: CommitAuthor? = null
+    val author: CommitAuthor? = null,
+    val url: String
 )
 
 @Serializable
 data class CommitCommit(
     val message: String,
-    val author: CommitCommitAuthor,
-    val url: String
+    val author: CommitCommitAuthor
 )
 
 @Serializable
@@ -30,4 +30,20 @@ data class CommitAuthor(
     val id: Long,
     @SerialName("login")
     val username: String
+)
+
+@Serializable
+data class CommitDetailDto(
+    val sha: String,
+    val commit: CommitCommit,
+    val author: CommitAuthor? = null,
+    val stats: CommitDetailStats,
+    val url: String
+)
+
+@Serializable
+data class CommitDetailStats(
+    val total: Int,
+    val additions: Int,
+    val deletions: Int
 )

@@ -1,5 +1,6 @@
 package com.dpv.repository
 
+import com.dpv.data.dto.github.CommitDetailDto
 import com.dpv.data.dto.github.CommitDto
 import com.dpv.data.entity.CommitEntity
 import com.dpv.data.entity.Commits
@@ -23,7 +24,7 @@ class CommitRepository {
             Commits.insert {
                 it[hash] = commitDto.sha
                 it[this.userId] = userId
-                it[githubUrl] = commitDto.commit.url
+                it[githubUrl] = commitDto.url
                 it[message] = commitDto.commit.message
                 it[commitedAt] = commitDto.commit.author.date
                 it[createdAt] = LocalDateTime.now()
@@ -32,15 +33,18 @@ class CommitRepository {
         }
     }
 
-    suspend fun bulkCreate(commitDtos: List<CommitDto>): Boolean {
+    suspend fun bulkCreate(commitDtos: List<CommitDetailDto>): Boolean {
         return newSuspendedTransaction {
             logger.info { "[CommitRepository:bulkCreate]" }
             Commits.batchInsert(commitDtos) { commitDto ->
                 this[Commits.hash] = commitDto.sha
                 this[Commits.userId] = commitDto.author?.id
-                this[Commits.githubUrl] = commitDto.commit.url
+                this[Commits.githubUrl] = commitDto.url
                 this[Commits.message] = commitDto.commit.message
                 this[Commits.commitedAt] = commitDto.commit.author.date
+                this[Commits.total] = commitDto.stats.total
+                this[Commits.additions] = commitDto.stats.additions
+                this[Commits.deletions] = commitDto.stats.deletions
                 this[Commits.createdAt] = LocalDateTime.now()
                 this[Commits.updatedAt] = LocalDateTime.now()
             }.isNotEmpty()
@@ -54,13 +58,16 @@ class CommitRepository {
         }
     }
 
-    suspend fun update(hash: String, commitDto: CommitDto): Boolean {
+    suspend fun update(hash: String, commitDto: CommitDetailDto): Boolean {
         return newSuspendedTransaction {
             logger.info { "[CommitRepository:update] with hash: $hash" }
             Commits.update({ Commits.hash eq hash }) {
                 it[userId] = commitDto.author?.id
-                it[githubUrl] = commitDto.commit.url
+                it[githubUrl] = commitDto.url
                 it[message] = commitDto.commit.message
+                it[total] = commitDto.stats.total
+                it[additions] = commitDto.stats.additions
+                it[deletions] = commitDto.stats.deletions
                 it[commitedAt] = commitDto.commit.author.date
                 it[updatedAt] = LocalDateTime.now()
             } > 0

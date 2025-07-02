@@ -1,6 +1,7 @@
 package com.dpv.service.github
 
 import com.dpv.client.GithubClient
+import com.dpv.data.dto.github.CommitDetailDto
 import com.dpv.data.dto.github.CommitDto
 import com.dpv.error.AppError
 import com.dpv.error.GITHUB_ERROR_CODE_FACTORY
@@ -37,6 +38,19 @@ class GithubCommitService(
 
         return response.deserializeIgnoreKeysWhen<List<CommitDto>> {
             return AppError.new(GITHUB_ERROR_CODE_FACTORY.INTERNAL_SERVER_ERROR, "Failed to get commits").err()
+        }.ok()
+    }
+
+    suspend fun getCommit(url: String): UniResult<CommitDetailDto> {
+        val response = githubClient.get(url) {
+            authorization = AUTHORIZATION
+            configureHeaders {
+                appendAll(xGithubApiVersionHeader)
+            }
+        }
+
+        return response.deserializeIgnoreKeysWhen<CommitDetailDto> {
+            return AppError.new(GITHUB_ERROR_CODE_FACTORY.INTERNAL_SERVER_ERROR, "Failed to get commit").err()
         }.ok()
     }
 }

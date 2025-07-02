@@ -14,6 +14,9 @@ class CommitEntity(id: EntityID<Long>): LongEntity(id) {
     var userId by Commits.userId
     var githubUrl by Commits.githubUrl
     var message by Commits.message
+    var total by Commits.total
+    var additions by Commits.additions
+    var deletions by Commits.deletions
     var commitedAt by Commits.commitedAt
     var createdAt by Commits.createdAt
     var updatedAt by Commits.updatedAt
@@ -24,6 +27,9 @@ object Commits: LongIdTable("commits") {
     val userId = reference("user_id", Users).nullable()
     val githubUrl = text("github_url")
     val message = text("message")
+    val total = integer("total")
+    val additions = integer("additions")
+    val deletions = integer("deletions")
     val commitedAt = datetime("committed_at")
     val createdAt = datetime("created_at").defaultExpression(CurrentDateTime)
     val updatedAt = datetime("updated_at").defaultExpression(CurrentDateTime)

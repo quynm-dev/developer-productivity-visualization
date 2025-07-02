@@ -1,5 +1,6 @@
 package com.dpv.service.github
 
+import com.dpv.data.dto.github.CommitDetailDto
 import com.dpv.data.dto.github.CommitDto
 import com.dpv.data.dto.github.PullDto
 import com.dpv.data.dto.github.UserDto
@@ -43,24 +44,32 @@ class GithubService(
 
         logger.info { "Sync commits" }
         val (since, until) = if(repo.lastSyncAt != null) getSyncTimeFrame() else Pair(null, null)
-        syncGithubDataInBatch(
+        val commits = syncGithubDataWithPagination(
             apiCall = { page ->
                 githubCommitService.getCommits(since, until, repo.commitsUrl, page = page)
-            },
-            syncWithDB = ::syncCommitsWithDB
+            }
         ).getOrElse { syncErr ->
             return syncErr.err()
-        }.ok()
+        }
+        val commitDetails = syncCommitDetailInBatch(commits).getOrElse { syncCommitDetailInBatchErr ->
+            return syncCommitDetailInBatchErr.err()
+        }
+
+        syncCommitsWithDB(commitDetails).getOrElse { syncCommitsErr ->
+            return syncCommitsErr.err()
+        }
 
         logger.info { "Sync pulls" }
-        syncGithubDataInBatch(
+        val pulls = syncGithubDataWithPagination(
             apiCall = { page ->
                 githubPullService.getPulls(repo.pullsUrl, null, page = page)
-            },
-            syncWithDB = ::syncPullsWithDB
+            }
         ).getOrElse { syncPullsErr ->
             return syncPullsErr.err()
-        }.ok()
+        }
+        syncPullsWithDB(pulls).getOrElse { syncPullsErr ->
+            return syncPullsErr.err()
+        }
 
         repoService.update(repo.copy(lastSyncAt = LocalDateTime.now())).getOrElse { updateErr ->
             return updateErr.err()
@@ -70,9 +79,9 @@ class GithubService(
         return Unit.ok()
     }
 
-    suspend fun syncCommitsWithDB(commits: List<CommitDto>): UniResult<Unit> {
+    suspend fun syncCommitsWithDB(commits: List<CommitDetailDto>): UniResult<Unit> {
         val existUserIds = mutableListOf<Long>()
-        val newCommits = mutableListOf<CommitDto>()
+        val newCommits = mutableListOf<CommitDetailDto>()
         commits.forEach { commit ->
             if(commit.author?.id != null && !existUserIds.contains(commit.author.id)) {
                 userService.validateExistence(commit.author.id).getOrElse { validateExistenceErr ->
@@ -158,10 +167,9 @@ class GithubService(
         return Unit.ok()
     }
 
-    suspend fun <T> syncGithubDataInBatch(
-        apiCall: suspend (page: Int) -> UniResult<List<T>>,
-        syncWithDB: suspend (datas: List<T>) -> UniResult<Unit>,
-    ): UniResult<Unit> {
+    suspend fun <T> syncGithubDataWithPagination(
+        apiCall: suspend (page: Int) -> UniResult<List<T>>
+    ): UniResult<List<T>> {
         val datas = mutableListOf<T>()
 
         coroutineScope {
@@ -188,7 +196,38 @@ class GithubService(
             }
         }
 
-        return syncWithDB(datas)
+        return datas.ok()
+    }
+
+    suspend fun syncCommitDetailInBatch(commits: List<CommitDto>): UniResult<List<CommitDetailDto>> {
+        val commitDetails = mutableListOf<CommitDetailDto>()
+
+        coroutineScope {
+            var iteration = 0
+            var total = commits.size
+            var error: AppError? = null
+
+            while(error == null && total > 0) {
+                val coroutineCount = if (total < BATCH_SIZE) total else BATCH_SIZE
+                val batchResults = (1..coroutineCount).map { batchIndex ->
+                    async {
+                        githubCommitService.getCommit(commits[batchIndex + iteration * BATCH_SIZE - 1].url)
+                    }
+                }.awaitAll()
+                iteration += 1
+                total -= coroutineCount
+
+                batchResults.forEach { result ->
+                    val commitDetail = result.getOrElse { err ->
+                        error = err
+                        return@coroutineScope
+                    }
+                    commitDetails.add(commitDetail)
+                }
+            }
+        }
+
+        return commitDetails.ok()
     }
 
     suspend fun getOrCreateRepoByName(name: String): UniResult<RepositoryModel> {

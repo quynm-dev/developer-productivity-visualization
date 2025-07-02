@@ -24,8 +24,6 @@ data class PullDto(
     @Serializable(with = ISO8601LocalDateTimeSerializer::class)
     @SerialName("updated_at")
     val updatedAt: LocalDateTime
-
-
 )
 
 @Serializable

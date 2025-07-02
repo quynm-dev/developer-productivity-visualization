@@ -1,5 +1,6 @@
 package com.dpv.service
 
+import com.dpv.data.dto.github.CommitDetailDto
 import com.dpv.data.dto.github.CommitDto
 import com.dpv.error.AppError
 import com.dpv.error.GITHUB_ERROR_CODE_FACTORY
@@ -22,7 +23,7 @@ class CommitService(
         return commitRepository.create(commitDto, userId).ok()
     }
 
-    suspend fun bulkCreate(commitDtos: List<CommitDto>): UniResult<Boolean> {
+    suspend fun bulkCreate(commitDtos: List<CommitDetailDto>): UniResult<Boolean> {
         return commitRepository.bulkCreate(commitDtos).ok()
     }
 
@@ -36,7 +37,7 @@ class CommitService(
         return exist.ok()
     }
 
-    suspend fun update(hash: String, commitDto: CommitDto): UniResult<Boolean> {
+    suspend fun update(hash: String, commitDto: CommitDetailDto): UniResult<Boolean> {
         return commitRepository.update(hash, commitDto).ok()
     }
 }
