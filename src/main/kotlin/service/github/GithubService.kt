@@ -1,9 +1,6 @@
 package com.dpv.service.github
 
-import com.dpv.data.dto.github.CommitDetailDto
-import com.dpv.data.dto.github.CommitDto
-import com.dpv.data.dto.github.PullDto
-import com.dpv.data.dto.github.UserDto
+import com.dpv.data.dto.github.*
 import com.dpv.data.model.RepositoryModel
 import com.dpv.error.AppError
 import com.dpv.error.GITHUB_ERROR_CODE_FACTORY
@@ -76,6 +73,33 @@ class GithubService(
         }
 
         logger.info { "[GithubService:sync] End" }
+        return Unit.ok()
+    }
+
+    suspend fun onboarding(repoNames: List<String>): UniResult<Unit> {
+        logger.info { "[GithubService:onboarding]" }
+        repoNames.forEach { repoName ->
+            val repo = repoService.findByName(repoName).getOrElse { findByNameErr ->
+                if (!findByNameErr.hasCode(GITHUB_ERROR_CODE_FACTORY.NOT_FOUND)) {
+                    return findByNameErr.err()
+                }
+
+                return@getOrElse null
+            }
+            if(repo != null) {
+                return AppError.new(
+                    GITHUB_ERROR_CODE_FACTORY.ALREADY_EXIST,
+                    "Repository with name $repoName already exists"
+                ).err()
+            }
+        }
+
+        repoNames.forEach { repoName ->
+            syncAndCreateRepoResources(repoName).getOrElse { syncAndCreateRepoErr ->
+                return syncAndCreateRepoErr.err()
+            }
+        }
+
         return Unit.ok()
     }
 
@@ -236,27 +260,33 @@ class GithubService(
                 return findByNameErr.err()
             }
 
-            val repo = githubRepoService.getRepo(name).getOrElse { getRepoErr ->
-                return getRepoErr.err()
+            syncAndCreateRepoResources(name).getOrElse { syncAndCreateRepoErr ->
+                return syncAndCreateRepoErr.err()
+            }
+        }.ok()
+    }
+
+    suspend fun syncAndCreateRepoResources(name: String): UniResult<RepositoryModel> {
+        val repo = githubRepoService.getRepo(name).getOrElse { getRepoErr ->
+            return getRepoErr.err()
+        }
+
+        userService.validateExistence(repo.owner.id).getOrElse { validateExistErr ->
+            if (!validateExistErr.hasCode(GITHUB_ERROR_CODE_FACTORY.NOT_FOUND)) {
+                return validateExistErr.err()
             }
 
-            userService.validateExistence(repo.owner.id).getOrElse { validateExistErr ->
-                if (!validateExistErr.hasCode(GITHUB_ERROR_CODE_FACTORY.NOT_FOUND)) {
-                    return validateExistErr.err()
-                }
-
-                userService.create(repo.owner).getOrElse { createUserErr ->
-                    return createUserErr.err()
-                }
+            userService.create(repo.owner).getOrElse { createUserErr ->
+                return createUserErr.err()
             }
+        }
 
-            val repoId = repoService.create(repo).getOrElse { createRepoErr ->
-                return createRepoErr.err()
-            }
+        val repoId = repoService.create(repo).getOrElse { createRepoErr ->
+            return createRepoErr.err()
+        }
 
-            repoService.findById(repoId).getOrElse { findByIdErr ->
-                return findByIdErr.err()
-            }
+        return repoService.findById(repoId).getOrElse { findByIdErr ->
+            return findByIdErr.err()
         }.ok()
     }
 }
