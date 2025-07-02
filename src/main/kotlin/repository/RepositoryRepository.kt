@@ -8,6 +8,7 @@ import com.dpv.mapper.toModel
 import mu.KotlinLogging
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.sql.update
 import org.koin.core.annotation.Singleton
 import java.time.LocalDateTime
 
@@ -55,6 +56,22 @@ class RepositoryRepository {
             }
 
             repo.id
+        }
+    }
+
+    suspend fun update(repoModel: RepositoryModel): Boolean {
+        return newSuspendedTransaction {
+            logger.info { "[RepositoryRepository:update] with id: ${repoModel.id}" }
+            Repositories.update({ Repositories.id eq repoModel.id }) {
+                it[name] = repoModel.name
+                it[githubUrl] = repoModel.githubUrl
+                it[userId] = repoModel.userId
+                it[language] = repoModel.language
+                it[pullsUrl] = repoModel.pullsUrl
+                it[commitsUrl] = repoModel.commitsUrl
+                it[lastSyncAt] = repoModel.lastSyncAt
+                it[updatedAt] = LocalDateTime.now()
+            } > 0
         }
     }
 }

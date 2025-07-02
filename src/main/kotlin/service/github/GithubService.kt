@@ -16,6 +16,7 @@ import io.ktor.server.application.*
 import kotlinx.coroutines.*
 import mu.KotlinLogging
 import org.koin.core.annotation.Singleton
+import java.time.LocalDateTime
 
 @Singleton
 class GithubService(
@@ -60,6 +61,10 @@ class GithubService(
         ).getOrElse { syncPullsErr ->
             return syncPullsErr.err()
         }.ok()
+
+        repoService.update(repo.copy(lastSyncAt = LocalDateTime.now())).getOrElse { updateErr ->
+            return updateErr.err()
+        }
 
         logger.info { "[GithubService:sync] End" }
         return Unit.ok()

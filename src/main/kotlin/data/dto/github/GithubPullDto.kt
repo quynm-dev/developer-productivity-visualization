@@ -13,8 +13,10 @@ data class PullDto(
     val title: String,
     val user: PullUser,
     @Serializable(with = ISO8601LocalDateTimeSerializer::class)
+    @SerialName("closed_at")
     val closedAt: LocalDateTime? = null,
     @Serializable(with = ISO8601LocalDateTimeSerializer::class)
+    @SerialName("merged_at")
     val mergedAt: LocalDateTime? = null,
     @Serializable(with = ISO8601LocalDateTimeSerializer::class)
     @SerialName("created_at")
