@@ -6,6 +6,7 @@ import io.ktor.server.application.*
 import mu.KotlinLogging
 import org.koin.core.annotation.Singleton
 
+// TODO: Used to handle rate limit better
 @Singleton
 class GithubClient(
     environment: ApplicationEnvironment,

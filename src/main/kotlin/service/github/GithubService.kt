@@ -16,7 +16,6 @@ import io.ktor.server.application.*
 import kotlinx.coroutines.*
 import mu.KotlinLogging
 import org.koin.core.annotation.Singleton
-import java.time.LocalDateTime
 
 @Singleton
 class GithubService(
@@ -43,47 +42,27 @@ class GithubService(
 
         logger.info { "Sync commits" }
         val (since, until) = if(repo.lastSyncAt != null) getSyncTimeFrame() else Pair(null, null)
-        syncCommits(since, until, repo.commitsUrl).getOrElse { syncCommitsErr ->
-            return syncCommitsErr.err()
-        }
+        syncGithubDataInBatch(
+            apiCall = { page ->
+                githubCommitService.getCommits(since, until, repo.commitsUrl, page = page)
+            },
+            syncWithDB = ::syncCommitsWithDB
+        ).getOrElse { syncErr ->
+            return syncErr.err()
+        }.ok()
 
         logger.info { "Sync pulls" }
-        syncPulls(repo.pullsUrl).getOrElse { syncPullsErr ->
+        syncGithubDataInBatch(
+            apiCall = { page ->
+                githubPullService.getPulls(repo.pullsUrl, null, page = page)
+            },
+            syncWithDB = ::syncPullsWithDB
+        ).getOrElse { syncPullsErr ->
             return syncPullsErr.err()
-        }
+        }.ok()
 
         logger.info { "[GithubService:sync] End" }
         return Unit.ok()
-    }
-
-    suspend fun syncCommits(since: LocalDateTime? = null, until: LocalDateTime? = null, commitsUrl: String): UniResult<Unit> {
-        val commits = mutableListOf<CommitDto>()
-
-        coroutineScope {
-            var iteration = 0
-            var error: AppError? = null
-            var hitLastPage = false
-
-            while(!hitLastPage && error == null) {
-                val batchResults = (1..BATCH_SIZE).map { batchIndex ->
-                    async {
-                        githubCommitService.getCommits(since, until, commitsUrl, page = batchIndex + iteration * BATCH_SIZE)
-                    }
-                }.awaitAll()
-                iteration += 1
-
-                batchResults.forEach { result ->
-                    val data = result.getOrElse { err ->
-                        error = err
-                        return@coroutineScope
-                    }
-                    hitLastPage = hitLastPage || data.isEmpty()
-                    commits.addAll(data)
-                }
-            }
-        }
-
-        return syncCommitsWithDB(commits)
     }
 
     suspend fun syncCommitsWithDB(commits: List<CommitDto>): UniResult<Unit> {
@@ -129,36 +108,6 @@ class GithubService(
         return Unit.ok()
     }
 
-    suspend fun syncPulls(pullsUrl: String): UniResult<Unit> {
-        val pulls = mutableListOf<PullDto>()
-
-        coroutineScope {
-            var iteration = 0
-            var error: AppError? = null
-            var hitLastPage = false
-
-            while(!hitLastPage && error == null) {
-                val batchResults = (1..BATCH_SIZE).map { batchIndex ->
-                    async {
-                        githubPullService.getPulls(pullsUrl, null, page = batchIndex + iteration * BATCH_SIZE)
-                    }
-                }.awaitAll()
-                iteration += 1
-
-                batchResults.forEach { result ->
-                    val data = result.getOrElse { err ->
-                        error = err
-                        return@coroutineScope
-                    }
-                    hitLastPage = hitLastPage || data.isEmpty()
-                    pulls.addAll(data)
-                }
-            }
-        }
-
-        return syncPullsWithDB(pulls)
-    }
-
     suspend fun syncPullsWithDB(pulls: List<PullDto>): UniResult<Unit> {
         val newUsers = mutableListOf<UserDto>()
         val newPulls = mutableListOf<PullDto>()
@@ -202,6 +151,39 @@ class GithubService(
         }
 
         return Unit.ok()
+    }
+
+    suspend fun <T> syncGithubDataInBatch(
+        apiCall: suspend (page: Int) -> UniResult<List<T>>,
+        syncWithDB: suspend (datas: List<T>) -> UniResult<Unit>,
+    ): UniResult<Unit> {
+        val datas = mutableListOf<T>()
+
+        coroutineScope {
+            var iteration = 0
+            var error: AppError? = null
+            var hitLastPage = false
+
+            while(!hitLastPage && error == null) {
+                val batchResults = (1..BATCH_SIZE).map { batchIndex ->
+                    async {
+                        apiCall(batchIndex + iteration * BATCH_SIZE)
+                    }
+                }.awaitAll()
+                iteration += 1
+
+                batchResults.forEach { result ->
+                    val data = result.getOrElse { err ->
+                        error = err
+                        return@coroutineScope
+                    }
+                    hitLastPage = hitLastPage || data.isEmpty()
+                    datas.addAll(data)
+                }
+            }
+        }
+
+        return syncWithDB(datas)
     }
 
     suspend fun getOrCreateRepoByName(name: String): UniResult<RepositoryModel> {
