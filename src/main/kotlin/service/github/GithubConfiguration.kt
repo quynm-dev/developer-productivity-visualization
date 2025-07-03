@@ -7,7 +7,6 @@ import java.time.LocalDateTime
 
 abstract class GithubConfiguration(environment: ApplicationEnvironment) {
     // Base
-    protected val AUTHORIZATION = "Bearer ${environment.getProperty("github.pat")}"
     protected val BASE_URL = environment.getProperty("github.baseUrl")
 
     // Parameters

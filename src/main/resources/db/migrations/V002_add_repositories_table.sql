@@ -7,6 +7,7 @@ CREATE TABLE repositories
     language     VARCHAR(255)        NOT NULL,
     pulls_url    TEXT                NOT NULL,
     commits_url  TEXT                NOT NULL,
+    pat          TEXT                NOT NULL,
     last_sync_at datetime,
     created_at   datetime            NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at   datetime            NOT NULL DEFAULT CURRENT_TIMESTAMP,

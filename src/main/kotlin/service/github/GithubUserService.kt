@@ -16,9 +16,9 @@ class GithubUserService(
     environment: ApplicationEnvironment,
     private val githubClient: GithubClient,
 ) : GithubConfiguration(environment) {
-    suspend fun getUser(username: String): UniResult<UserDto> {
+    suspend fun getUser(pat: String, username: String): UniResult<UserDto> {
         val response = githubClient.get(BASE_URL + USERS_PREFIX + username) {
-            authorization = AUTHORIZATION
+            authorization = "Bearer $pat"
             configureHeaders {
                 appendAll(xGithubApiVersionHeader)
             }

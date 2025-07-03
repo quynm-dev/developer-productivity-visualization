@@ -20,11 +20,11 @@ class GithubCommitService(
     private val githubClient: GithubClient,
 ) : GithubConfiguration(environment) {
     suspend fun getCommits(
-        since: LocalDateTime? = null, until: LocalDateTime? = null, url: String,
+        pat: String, since: LocalDateTime? = null, until: LocalDateTime? = null, url: String,
         perPage: Int = 30, page: Int = 1
     ): UniResult<List<CommitDto>> {
         val response = githubClient.get(url) {
-            authorization = AUTHORIZATION
+            authorization = "Bearer $pat"
             configureHeaders {
                 appendAll(xGithubApiVersionHeader)
             }
@@ -41,9 +41,9 @@ class GithubCommitService(
         }.ok()
     }
 
-    suspend fun getCommit(url: String): UniResult<CommitDetailDto> {
+    suspend fun getCommit(pat: String, url: String): UniResult<CommitDetailDto> {
         val response = githubClient.get(url) {
-            authorization = AUTHORIZATION
+            authorization = "Bearer $pat"
             configureHeaders {
                 appendAll(xGithubApiVersionHeader)
             }

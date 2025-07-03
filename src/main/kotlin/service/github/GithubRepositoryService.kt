@@ -16,9 +16,9 @@ class GithubRepositoryService(
     environment: ApplicationEnvironment,
     private val githubClient: GithubClient
 ) : GithubConfiguration(environment) {
-    suspend fun getRepo(name: String): UniResult<RepositoryDto> {
+    suspend fun getRepo(pat: String, name: String): UniResult<RepositoryDto> {
         val response = githubClient.get(BASE_URL + REPOS_PREFIX + name) {
-            authorization = AUTHORIZATION
+            authorization = "Bearer $pat"
             configureHeaders {
                 appendAll(xGithubApiVersionHeader)
             }

@@ -21,9 +21,9 @@ class GithubPullService(
         private val logger = KotlinLogging.logger {}
     }
 
-    suspend fun getPulls(url: String, base: String? = null, perPage: Int = 30, page: Int = 1): UniResult<List<PullDto>> {
+    suspend fun getPulls(pat: String, url: String, base: String? = null, perPage: Int = 30, page: Int = 1): UniResult<List<PullDto>> {
         val response = githubClient.get(url) {
-            authorization = AUTHORIZATION
+            authorization = "Bearer $pat"
             configureHeaders {
                 appendAll(xGithubApiVersionHeader)
             }

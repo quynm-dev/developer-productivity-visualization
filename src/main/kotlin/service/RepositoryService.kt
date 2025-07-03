@@ -45,8 +45,8 @@ class RepositoryService(
         return repo.ok()
     }
 
-    suspend fun create(repoDto: RepositoryDto): UniResult<Long> {
-        return repoRepository.create(repoDto).ok()
+    suspend fun create(pat: String, repoDto: RepositoryDto): UniResult<Long> {
+        return repoRepository.create(pat, repoDto).ok()
     }
 
     suspend fun update(repoModel: RepositoryModel): UniResult<Boolean> {

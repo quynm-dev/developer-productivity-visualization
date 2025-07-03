@@ -39,7 +39,7 @@ class RepositoryRepository {
         }
     }
 
-    suspend fun create(repo: RepositoryDto): Long {
+    suspend fun create(pat: String, repo: RepositoryDto): Long {
         return newSuspendedTransaction {
             logger.info { "[RepositoryRepository:create]" }
             Repositories.insert {
@@ -50,6 +50,7 @@ class RepositoryRepository {
                 it[language] = repo.language
                 it[pullsUrl] = repo.pullsUrl.substringBefore("{")
                 it[commitsUrl] = repo.commitsUrl.substringBefore("{")
+                it[this.pat] = pat
                 it[lastSyncAt] = null
                 it[createdAt] = LocalDateTime.now()
                 it[updatedAt] = LocalDateTime.now()

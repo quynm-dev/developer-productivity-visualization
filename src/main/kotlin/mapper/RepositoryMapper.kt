@@ -12,6 +12,7 @@ fun RepositoryEntity.toModel(): RepositoryModel {
         language = this.language,
         pullsUrl = this.pullsUrl,
         commitsUrl = this.commitsUrl,
+        pat = this.pat,
         lastSyncAt = this.lastSyncAt,
         createdAt = this.createdAt,
         updatedAt = this.updatedAt

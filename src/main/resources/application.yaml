@@ -13,7 +13,6 @@ dpv:
     driver: "com.mysql.cj.jdbc.Driver"
 
 github:
-  pat: "pat"
   baseUrl: "https://api.github.com"
   xGithubApiVersion: "2022-11-28"
 

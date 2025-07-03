@@ -25,9 +25,9 @@ class GithubRateLimitService(
         private val logger = KotlinLogging.logger {}
     }
 
-    suspend fun getRateLimit(): UniResult<RateLimitDto> {
+    suspend fun getRateLimit(pat: String): UniResult<RateLimitDto> {
         val response = restClient.get(BASE_URL) {
-            authorization = AUTHORIZATION
+            authorization = "Bearer $pat"
             path(RATE_LIMIT_PATH)
             configureHeaders {
                 appendAll(xGithubApiVersionHeader)
@@ -39,8 +39,8 @@ class GithubRateLimitService(
         }.ok()
     }
 
-    suspend fun validateQuota(): UniResult<Boolean> {
-        val rateLimitResult = getRateLimit().getOrElse { getRateLimitErr ->
+    suspend fun validateQuota(pat: String): UniResult<Boolean> {
+        val rateLimitResult = getRateLimit(pat).getOrElse { getRateLimitErr ->
             return getRateLimitErr.err()
         }
 

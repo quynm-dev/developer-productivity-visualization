@@ -35,37 +35,47 @@ class GithubService(
 
     suspend fun sync(repoName: String): UniResult<Unit> {
         logger.info { "[GithubService:sync] Start" }
-        val repo = getOrCreateRepoByName(repoName).getOrElse { getOrCreateRepoErr ->
-            return getOrCreateRepoErr.err()
+        val repo = repoService.findByName(repoName).getOrElse { findByNameErr ->
+            if (!findByNameErr.hasCode(GITHUB_ERROR_CODE_FACTORY.NOT_FOUND)) {
+                return findByNameErr.err()
+            }
+
+            return@getOrElse null
+        }
+        if(repo == null) {
+            return AppError.new(
+                GITHUB_ERROR_CODE_FACTORY.NOT_FOUND,
+                "Repository with name $repoName not found"
+            ).err()
         }
 
         logger.info { "Sync commits" }
         val (since, until) = if(repo.lastSyncAt != null) getSyncTimeFrame() else Pair(null, null)
-        val commits = syncGithubDataWithPagination(
+        val commits = syncGithubDatasWithPagination(
             apiCall = { page ->
-                githubCommitService.getCommits(since, until, repo.commitsUrl, page = page)
+                githubCommitService.getCommits(repo.pat, since, until, repo.commitsUrl, page = page)
             }
-        ).getOrElse { syncErr ->
-            return syncErr.err()
+        ).getOrElse { syncCommitsErr ->
+            return syncCommitsErr.err()
         }
-        val commitDetails = syncCommitDetailInBatch(commits).getOrElse { syncCommitDetailInBatchErr ->
-            return syncCommitDetailInBatchErr.err()
+        val commitDetails = syncGithubCommitDetailsInBatch(repo.pat, commits).getOrElse { syncGithubCommitDetailsInBatchErr ->
+            return syncGithubCommitDetailsInBatchErr.err()
         }
 
-        syncCommitsWithDB(commitDetails).getOrElse { syncCommitsErr ->
-            return syncCommitsErr.err()
+        syncCommitsResources(repo.pat, commitDetails).getOrElse { syncCommitsResourcesErr ->
+            return syncCommitsResourcesErr.err()
         }
 
         logger.info { "Sync pulls" }
-        val pulls = syncGithubDataWithPagination(
+        val pulls = syncGithubDatasWithPagination(
             apiCall = { page ->
-                githubPullService.getPulls(repo.pullsUrl, null, page = page)
+                githubPullService.getPulls(repo.pat, repo.pullsUrl, null, page = page)
             }
         ).getOrElse { syncPullsErr ->
             return syncPullsErr.err()
         }
-        syncPullsWithDB(pulls).getOrElse { syncPullsErr ->
-            return syncPullsErr.err()
+        syncPullsResources(repo.pat, pulls).getOrElse { syncPullsResourcesErr ->
+            return syncPullsResourcesErr.err()
         }
 
         repoService.update(repo.copy(lastSyncAt = LocalDateTime.now())).getOrElse { updateErr ->
@@ -76,7 +86,7 @@ class GithubService(
         return Unit.ok()
     }
 
-    suspend fun onboarding(repoNames: List<String>): UniResult<Unit> {
+    suspend fun onboarding(pat: String, repoNames: List<String>): UniResult<Unit> {
         logger.info { "[GithubService:onboarding]" }
         repoNames.forEach { repoName ->
             val repo = repoService.findByName(repoName).getOrElse { findByNameErr ->
@@ -95,7 +105,7 @@ class GithubService(
         }
 
         repoNames.forEach { repoName ->
-            syncAndCreateRepoResources(repoName).getOrElse { syncAndCreateRepoErr ->
+            syncRepoResources(pat, repoName).getOrElse { syncAndCreateRepoErr ->
                 return syncAndCreateRepoErr.err()
             }
         }
@@ -103,7 +113,7 @@ class GithubService(
         return Unit.ok()
     }
 
-    suspend fun syncCommitsWithDB(commits: List<CommitDetailDto>): UniResult<Unit> {
+    suspend fun syncCommitsResources(pat: String, commits: List<CommitDetailDto>): UniResult<Unit> {
         val existUserIds = mutableListOf<Long>()
         val newCommits = mutableListOf<CommitDetailDto>()
         commits.forEach { commit ->
@@ -113,7 +123,7 @@ class GithubService(
                         return validateExistenceErr.err()
                     }
 
-                    val user = githubUserService.getUser(commit.author.username).getOrElse { getUserErr ->
+                    val user = githubUserService.getUser(pat, commit.author.username).getOrElse { getUserErr ->
                         return getUserErr.err()
                     }
 
@@ -146,7 +156,7 @@ class GithubService(
         return Unit.ok()
     }
 
-    suspend fun syncPullsWithDB(pulls: List<PullDto>): UniResult<Unit> {
+    suspend fun syncPullsResources(pat:String, pulls: List<PullDto>): UniResult<Unit> {
         val newUsers = mutableListOf<UserDto>()
         val newPulls = mutableListOf<PullDto>()
         val existUserIds = mutableListOf<Long>()
@@ -157,7 +167,7 @@ class GithubService(
                         return validateExistenceErr.err()
                     }
 
-                    val user = githubUserService.getUser(pull.user.username).getOrElse { getUserErr ->
+                    val user = githubUserService.getUser(pat, pull.user.username).getOrElse { getUserErr ->
                         return getUserErr.err()
                     }
 
@@ -191,7 +201,7 @@ class GithubService(
         return Unit.ok()
     }
 
-    suspend fun <T> syncGithubDataWithPagination(
+    suspend fun <T> syncGithubDatasWithPagination(
         apiCall: suspend (page: Int) -> UniResult<List<T>>
     ): UniResult<List<T>> {
         val datas = mutableListOf<T>()
@@ -223,7 +233,7 @@ class GithubService(
         return datas.ok()
     }
 
-    suspend fun syncCommitDetailInBatch(commits: List<CommitDto>): UniResult<List<CommitDetailDto>> {
+    suspend fun syncGithubCommitDetailsInBatch(pat: String, commits: List<CommitDto>): UniResult<List<CommitDetailDto>> {
         val commitDetails = mutableListOf<CommitDetailDto>()
 
         coroutineScope {
@@ -235,7 +245,7 @@ class GithubService(
                 val coroutineCount = if (total < BATCH_SIZE) total else BATCH_SIZE
                 val batchResults = (1..coroutineCount).map { batchIndex ->
                     async {
-                        githubCommitService.getCommit(commits[batchIndex + iteration * BATCH_SIZE - 1].url)
+                        githubCommitService.getCommit(pat, commits[batchIndex + iteration * BATCH_SIZE - 1].url)
                     }
                 }.awaitAll()
                 iteration += 1
@@ -254,20 +264,8 @@ class GithubService(
         return commitDetails.ok()
     }
 
-    suspend fun getOrCreateRepoByName(name: String): UniResult<RepositoryModel> {
-        return repoService.findByName(name).getOrElse { findByNameErr ->
-            if (!findByNameErr.hasCode(GITHUB_ERROR_CODE_FACTORY.NOT_FOUND)) {
-                return findByNameErr.err()
-            }
-
-            syncAndCreateRepoResources(name).getOrElse { syncAndCreateRepoErr ->
-                return syncAndCreateRepoErr.err()
-            }
-        }.ok()
-    }
-
-    suspend fun syncAndCreateRepoResources(name: String): UniResult<RepositoryModel> {
-        val repo = githubRepoService.getRepo(name).getOrElse { getRepoErr ->
+    suspend fun syncRepoResources(pat: String, name: String): UniResult<RepositoryModel> {
+        val repo = githubRepoService.getRepo(pat, name).getOrElse { getRepoErr ->
             return getRepoErr.err()
         }
 
@@ -281,7 +279,7 @@ class GithubService(
             }
         }
 
-        val repoId = repoService.create(repo).getOrElse { createRepoErr ->
+        val repoId = repoService.create(pat, repo).getOrElse { createRepoErr ->
             return createRepoErr.err()
         }
 

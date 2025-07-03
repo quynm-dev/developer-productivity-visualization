@@ -10,6 +10,7 @@ data class RepositoryModel(
     val language: String,
     val pullsUrl: String,
     val commitsUrl: String,
+    val pat: String,
     val lastSyncAt: LocalDateTime? = null,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime
