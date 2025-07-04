@@ -12,7 +12,6 @@ class UserEntity(id: EntityID<Long>): LongEntity(id) {
 
     var username by Users.username
     var avatarUrl by Users.avatarUrl
-    var githubId by Users.githubId
     var githubUrl by Users.githubUrl
     var createdAt by Users.createdAt
     var updatedAt by Users.updatedAt
@@ -21,7 +20,6 @@ class UserEntity(id: EntityID<Long>): LongEntity(id) {
 object Users: LongIdTable("users") {
     val username = varchar("username", 255).uniqueIndex()
     val avatarUrl = text("avatar_url")
-    val githubId = long("github_id").uniqueIndex()
     val githubUrl = text("github_url")
     val createdAt = datetime("created_at").defaultExpression(CurrentDateTime)
     val updatedAt = datetime("updated_at").defaultExpression(CurrentDateTime)

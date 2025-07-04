@@ -2,6 +2,7 @@ CREATE TABLE commits
 (
     id           BIGINT              NOT NULL AUTO_INCREMENT,
     hash         VARCHAR(255) UNIQUE NOT NULL,
+    repo_id      BIGINT              NOT NULL,
     user_id      BIGINT,
     github_url   TEXT                NOT NULL,
     message      TEXT                NOT NULL,

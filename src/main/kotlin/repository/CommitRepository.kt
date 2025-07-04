@@ -33,12 +33,13 @@ class CommitRepository {
         }
     }
 
-    suspend fun bulkCreate(commitDtos: List<CommitDetailDto>): Boolean {
+    suspend fun bulkCreate(commitDtos: List<CommitDetailDto>, repoId: Long): Boolean {
         return newSuspendedTransaction {
             logger.info { "[CommitRepository:bulkCreate]" }
             Commits.batchInsert(commitDtos) { commitDto ->
                 this[Commits.hash] = commitDto.sha
                 this[Commits.userId] = commitDto.author?.id
+                this[Commits.repoId] = repoId
                 this[Commits.githubUrl] = commitDto.url
                 this[Commits.message] = commitDto.commit.message
                 this[Commits.commitedAt] = commitDto.commit.author.date

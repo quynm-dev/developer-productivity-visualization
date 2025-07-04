@@ -5,6 +5,7 @@ CREATE TABLE pulls
     state             VARCHAR(255) NOT NULL,
     title             TEXT         NOT NULL,
     user_id           BIGINT       NOT NULL,
+    repo_id           BIGINT       NOT NULL,
     closed_at         datetime,
     merged_at         datetime,
     github_created_at datetime     NOT NULL,

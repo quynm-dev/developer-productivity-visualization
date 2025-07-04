@@ -62,7 +62,7 @@ class GithubService(
             return syncGithubCommitDetailsInBatchErr.err()
         }
 
-        syncCommitsResources(repo.pat, commitDetails).getOrElse { syncCommitsResourcesErr ->
+        syncCommitsResources(repo.pat, commitDetails, repo.id).getOrElse { syncCommitsResourcesErr ->
             return syncCommitsResourcesErr.err()
         }
 
@@ -74,9 +74,11 @@ class GithubService(
         ).getOrElse { syncPullsErr ->
             return syncPullsErr.err()
         }
-        syncPullsResources(repo.pat, pulls).getOrElse { syncPullsResourcesErr ->
+        syncPullsResources(repo.pat, pulls, repo.id).getOrElse { syncPullsResourcesErr ->
             return syncPullsResourcesErr.err()
         }
+
+        // sync release, issue and comment
 
         repoService.update(repo.copy(lastSyncAt = LocalDateTime.now())).getOrElse { updateErr ->
             return updateErr.err()
@@ -113,7 +115,7 @@ class GithubService(
         return Unit.ok()
     }
 
-    suspend fun syncCommitsResources(pat: String, commits: List<CommitDetailDto>): UniResult<Unit> {
+    suspend fun syncCommitsResources(pat: String, commits: List<CommitDetailDto>, repoId: Long): UniResult<Unit> {
         val existUserIds = mutableListOf<Long>()
         val newCommits = mutableListOf<CommitDetailDto>()
         commits.forEach { commit ->
@@ -149,14 +151,14 @@ class GithubService(
             }
         }
 
-        commitService.bulkCreate(newCommits).getOrElse { bulkCreateErr ->
+        commitService.bulkCreate(newCommits, repoId).getOrElse { bulkCreateErr ->
             return bulkCreateErr.err()
         }
 
         return Unit.ok()
     }
 
-    suspend fun syncPullsResources(pat:String, pulls: List<PullDto>): UniResult<Unit> {
+    suspend fun syncPullsResources(pat:String, pulls: List<PullDto>, repoId: Long): UniResult<Unit> {
         val newUsers = mutableListOf<UserDto>()
         val newPulls = mutableListOf<PullDto>()
         val existUserIds = mutableListOf<Long>()
@@ -194,7 +196,7 @@ class GithubService(
             return bulkCreateErr.err()
         }
 
-        pullService.bulkCreate(newPulls).getOrElse { bulkCreateErr ->
+        pullService.bulkCreate(newPulls, repoId).getOrElse { bulkCreateErr ->
             return bulkCreateErr.err()
         }
 
@@ -281,6 +283,10 @@ class GithubService(
 
         val repoId = repoService.create(pat, repo).getOrElse { createRepoErr ->
             return createRepoErr.err()
+        }
+
+        sync(name).getOrElse { syncErr ->
+            return syncErr.err()
         }
 
         return repoService.findById(repoId).getOrElse { findByIdErr ->

@@ -22,8 +22,8 @@ class PullService(
         return pullRepository.create(pullDto).ok()
     }
 
-    suspend fun bulkCreate(pullDtos: List<PullDto>): UniResult<Boolean> {
-        return pullRepository.bulkCreate(pullDtos).ok()
+    suspend fun bulkCreate(pullDtos: List<PullDto>, repoId: Long): UniResult<Boolean> {
+        return pullRepository.bulkCreate(pullDtos, repoId).ok()
     }
 
     suspend fun validateExistence(id: Long): UniResult<Boolean> {

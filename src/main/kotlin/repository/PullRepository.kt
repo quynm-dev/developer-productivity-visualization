@@ -46,7 +46,7 @@ class PullRepository {
         }
     }
 
-    suspend fun bulkCreate(pullDtos: List<PullDto>): Boolean {
+    suspend fun bulkCreate(pullDtos: List<PullDto>, repoId: Long): Boolean {
         return newSuspendedTransaction {
             logger.info { "[PullRepository:bulkCreate]" }
             Pulls.batchInsert(pullDtos) { pullDto ->
@@ -55,6 +55,7 @@ class PullRepository {
                 this[state] = PullStatus.fromString(pullDto.state)
                 this[title] = pullDto.title
                 this[userId] = pullDto.user.id
+                this[Pulls.repoId] = repoId
                 this[closedAt] = pullDto.closedAt
                 this[mergedAt] = pullDto.mergedAt
                 this[githubCreatedAt] = pullDto.createdAt

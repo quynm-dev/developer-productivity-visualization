@@ -23,8 +23,8 @@ class CommitService(
         return commitRepository.create(commitDto, userId).ok()
     }
 
-    suspend fun bulkCreate(commitDtos: List<CommitDetailDto>): UniResult<Boolean> {
-        return commitRepository.bulkCreate(commitDtos).ok()
+    suspend fun bulkCreate(commitDtos: List<CommitDetailDto>, repoId: Long): UniResult<Boolean> {
+        return commitRepository.bulkCreate(commitDtos, repoId).ok()
     }
 
     suspend fun validateExistence(hash: String): UniResult<Boolean> {

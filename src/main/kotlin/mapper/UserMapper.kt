@@ -8,7 +8,6 @@ fun UserEntity.toModel(): UserModel {
         id = this.id.value,
         username = this.username,
         avatarUrl = this.avatarUrl,
-        githubId = this.id.value,
         githubUrl = this.githubUrl,
         createdAt = this.createdAt.toString(),
         updatedAt = this.updatedAt.toString()

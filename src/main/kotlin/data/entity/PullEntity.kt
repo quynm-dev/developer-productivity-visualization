@@ -15,6 +15,7 @@ class PullEntity(id: EntityID<Long>): LongEntity(id) {
     var state by Pulls.state
     var title by Pulls.title
     var userId by Pulls.userId
+    var repoId by Pulls.repoId
     var closedAt by Pulls.closedAt
     var mergedAt by Pulls.mergedAt
     var githubCreatedAt by Pulls.githubCreatedAt
@@ -28,6 +29,7 @@ object Pulls: LongIdTable("pulls") {
     val state = enumerationByName("state", 255, PullStatus::class)
     val title = text("title")
     val userId = reference("user_id", Users)
+    val repoId = reference("repo_id", Repositories)
     val closedAt = datetime("closed_at").nullable().default(null)
     val mergedAt = datetime("merged_at").nullable().default(null)
     val githubCreatedAt = datetime("github_created_at")

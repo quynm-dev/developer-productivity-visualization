@@ -12,6 +12,7 @@ class CommitEntity(id: EntityID<Long>): LongEntity(id) {
 
     var hash by Commits.hash
     var userId by Commits.userId
+    var repoId by Commits.repoId
     var githubUrl by Commits.githubUrl
     var message by Commits.message
     var total by Commits.total
@@ -25,6 +26,7 @@ class CommitEntity(id: EntityID<Long>): LongEntity(id) {
 object Commits: LongIdTable("commits") {
     val hash = varchar("hash", 255).uniqueIndex()
     val userId = reference("user_id", Users).nullable()
+    val repoId = reference("repo_id", Repositories)
     val githubUrl = text("github_url")
     val message = text("message")
     val total = integer("total")

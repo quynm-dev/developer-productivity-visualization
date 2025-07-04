@@ -18,6 +18,7 @@ fun Route.githubController() {
     val githubService by inject<GithubService>()
 
     route("/repositories") {
+        // TODO: Fallback for manual sync
         post("/sync") {
             val syncDto = call.receive<RepositorySyncDto>()
             if (syncDto.repoName.isNullOrEmpty()) {

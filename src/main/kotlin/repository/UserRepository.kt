@@ -38,7 +38,6 @@ class UserRepository {
                 it[username] = userDto.name
                 it[githubUrl] = userDto.url
                 it[avatarUrl] = userDto.avatarUrl
-                it[githubId] = userDto.id
                 it[createdAt] = LocalDateTime.now()
                 it[updatedAt] = LocalDateTime.now()
             }
@@ -55,7 +54,6 @@ class UserRepository {
                 this[Users.username] = userDto.name
                 this[Users.githubUrl] = userDto.url
                 this[Users.avatarUrl] = userDto.avatarUrl
-                this[Users.githubId] = userDto.id
                 this[Users.createdAt] = LocalDateTime.now()
                 this[Users.updatedAt] = LocalDateTime.now()
             }.isNotEmpty()
