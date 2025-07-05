@@ -24,8 +24,13 @@ class GithubRepositoryService(
             }
         }
 
-        return response.deserializeIgnoreKeysWhen<RepositoryDto> {
+        val data = response.deserializeIgnoreKeysWhen<RepositoryDto> {
             return AppError.new(GITHUB_ERROR_CODE_FACTORY.INTERNAL_SERVER_ERROR, "Failed to get repository").err()
-        }.ok()
+        }
+        if (data == null) {
+            return AppError.new(GITHUB_ERROR_CODE_FACTORY.NOT_FOUND, "Repository not found").err()
+        }
+
+        return data.ok()
     }
 }

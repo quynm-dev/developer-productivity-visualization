@@ -1,6 +1,6 @@
 package com.dpv.data.entity
 
-import com.dpv.data.enum.PullStatus
+import com.dpv.data.enum.GithubState
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
@@ -26,7 +26,7 @@ class PullEntity(id: EntityID<Long>): LongEntity(id) {
 
 object Pulls: LongIdTable("pulls") {
     val githubUrl = text("github_url")
-    val state = enumerationByName("state", 255, PullStatus::class)
+    val state = enumerationByName("state", 255, GithubState::class)
     val title = text("title")
     val userId = reference("user_id", Users)
     val repoId = reference("repo_id", Repositories)

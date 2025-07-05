@@ -14,5 +14,11 @@ data class RepositoryDto(
     val pullsUrl: String,
     @SerialName("commits_url")
     val commitsUrl: String,
+    @SerialName("issues_url")
+    val issuesUrl: String,
+    @SerialName("milestones_url")
+    val milestonesUrl: String,
+    @SerialName("releases_url")
+    val releasesUrl: String,
     val owner: UserDto
 )

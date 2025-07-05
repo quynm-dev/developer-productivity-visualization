@@ -1,7 +1,7 @@
 package com.dpv.service.github
 
 import com.dpv.client.GithubClient
-import com.dpv.data.dto.github.PullDto
+import com.dpv.data.dto.github.IssueDto
 import com.dpv.error.AppError
 import com.dpv.error.GITHUB_ERROR_CODE_FACTORY
 import com.dpv.helper.UniResult
@@ -13,7 +13,7 @@ import mu.KotlinLogging
 import org.koin.core.annotation.Singleton
 
 @Singleton
-class GithubPullService(
+class GithubIssueService(
     environment: ApplicationEnvironment,
     private val githubClient: GithubClient
 ) : GithubConfiguration(environment) {
@@ -21,25 +21,25 @@ class GithubPullService(
         private val logger = KotlinLogging.logger {}
     }
 
-    suspend fun getPulls(pat: String, url: String, base: String? = null, perPage: Int = 30, page: Int = 1): UniResult<List<PullDto>> {
+    suspend fun getIssues(pat: String, url: String, perPage: Int = 30, page: Int = 1): UniResult<List<IssueDto>> {
         val response = githubClient.get(url) {
             authorization = "Bearer $pat"
             configureHeaders {
                 appendAll(xGithubApiVersionHeader)
             }
             url {
-                base?.let { parameters.append("base", it) }
                 parameters.append("per_page", perPage.toString())
                 parameters.append("page", page.toString())
                 parameters.append("state", "all")
+                parameters.append("filter", "all") // Check whether this is correct or not
             }
         }
 
-        val data = response.deserializeIgnoreKeysWhen<List<PullDto>> {
-            return AppError.new(GITHUB_ERROR_CODE_FACTORY.INTERNAL_SERVER_ERROR, "Failed to get pulls").err()
+        val data = response.deserializeIgnoreKeysWhen<List<IssueDto>> {
+            return AppError.new(GITHUB_ERROR_CODE_FACTORY.INTERNAL_SERVER_ERROR, "Failed to get issues").err()
         }
         if(data.isNullOrEmpty()) {
-            return emptyList<PullDto>().ok()
+            return emptyList<IssueDto>().ok()
         }
 
         return data.ok()

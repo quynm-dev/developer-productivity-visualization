@@ -34,9 +34,14 @@ class GithubRateLimitService(
             }
         }
 
-        return response.deserializeIgnoreKeysWhen<RateLimitDto> {
+        val data = response.deserializeIgnoreKeysWhen<RateLimitDto> {
             return AppError.new(GITHUB_ERROR_CODE_FACTORY.INTERNAL_SERVER_ERROR, "Failed to get rate limit").err()
-        }.ok()
+        }
+        if (data == null) {
+            return AppError.new(GITHUB_ERROR_CODE_FACTORY.NOT_FOUND, "Rate limit not found").err()
+        }
+
+        return data.ok()
     }
 
     suspend fun validateQuota(pat: String): UniResult<Boolean> {

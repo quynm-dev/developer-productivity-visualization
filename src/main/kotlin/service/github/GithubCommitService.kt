@@ -36,9 +36,14 @@ class GithubCommitService(
             }
         }
 
-        return response.deserializeIgnoreKeysWhen<List<CommitDto>> {
+        val data = response.deserializeIgnoreKeysWhen<List<CommitDto>> {
             return AppError.new(GITHUB_ERROR_CODE_FACTORY.INTERNAL_SERVER_ERROR, "Failed to get commits").err()
-        }.ok()
+        }
+        if(data.isNullOrEmpty()) {
+            return emptyList<CommitDto>().ok()
+        }
+
+        return data.ok()
     }
 
     suspend fun getCommit(pat: String, url: String): UniResult<CommitDetailDto> {
@@ -49,8 +54,13 @@ class GithubCommitService(
             }
         }
 
-        return response.deserializeIgnoreKeysWhen<CommitDetailDto> {
+        val data = response.deserializeIgnoreKeysWhen<CommitDetailDto> {
             return AppError.new(GITHUB_ERROR_CODE_FACTORY.INTERNAL_SERVER_ERROR, "Failed to get commit").err()
-        }.ok()
+        }
+        if (data == null) {
+            return AppError.new(GITHUB_ERROR_CODE_FACTORY.NOT_FOUND, "Commit not found").err()
+        }
+
+        return data.ok()
     }
 }

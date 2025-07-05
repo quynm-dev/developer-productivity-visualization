@@ -16,6 +16,9 @@ class RepositoryEntity(id: EntityID<Long>): LongEntity(id) {
     var language by Repositories.language
     var pullsUrl by Repositories.pullsUrl
     var commitsUrl by Repositories.commitsUrl
+    var issuesUrl by Repositories.issuesUrl
+    var milestonesUrl by Repositories.milestonesUrl
+    var releasesUrl by Repositories.releasesUrl
     var pat by Repositories.pat
     var lastSyncAt by Repositories.lastSyncAt
     var createdAt by Repositories.createdAt
@@ -29,6 +32,9 @@ object Repositories: LongIdTable("repositories") {
     val language = varchar("language", 255)
     val pullsUrl = text("pulls_url")
     val commitsUrl = text("commits_url")
+    val issuesUrl = text("issues_url")
+    val milestonesUrl = text("milestones_url")
+    val releasesUrl = text("releases_url")
     val pat = text("pat")
     val lastSyncAt = datetime("last_sync_at").nullable().default(null)
     val createdAt = datetime("created_at").defaultExpression(CurrentDateTime)

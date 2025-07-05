@@ -13,7 +13,7 @@ import com.dpv.data.entity.Pulls.state
 import com.dpv.data.entity.Pulls.title
 import com.dpv.data.entity.Pulls.updatedAt
 import com.dpv.data.entity.Pulls.userId
-import com.dpv.data.enum.PullStatus
+import com.dpv.data.enum.GithubState
 import mu.KotlinLogging
 import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.insert
@@ -33,7 +33,7 @@ class PullRepository {
             Pulls.insert {
                 it[id] = pullDto.id
                 it[githubUrl] = pullDto.url
-                it[state] = PullStatus.fromString(pullDto.state)
+                it[state] = GithubState.fromString(pullDto.state)
                 it[title] = pullDto.title
                 it[userId] = pullDto.user.id
                 it[closedAt] = pullDto.closedAt
@@ -52,7 +52,7 @@ class PullRepository {
             Pulls.batchInsert(pullDtos) { pullDto ->
                 this[Pulls.id] = pullDto.id
                 this[githubUrl] = pullDto.url
-                this[state] = PullStatus.fromString(pullDto.state)
+                this[state] = GithubState.fromString(pullDto.state)
                 this[title] = pullDto.title
                 this[userId] = pullDto.user.id
                 this[Pulls.repoId] = repoId
@@ -78,7 +78,7 @@ class PullRepository {
             logger.info { "[PullRepository:update] with id: $id" }
             Pulls.update({ Pulls.id eq id }) {
                 it[githubUrl] = pullDto.url
-                it[state] = PullStatus.fromString(pullDto.state)
+                it[state] = GithubState.fromString(pullDto.state)
                 it[title] = pullDto.title
                 it[userId] = pullDto.user.id
                 it[closedAt] = pullDto.closedAt

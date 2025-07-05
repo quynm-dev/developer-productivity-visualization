@@ -3,18 +3,18 @@ package com.dpv.helper
 import io.ktor.client.statement.*
 import io.ktor.http.*
 
-suspend inline fun <reified T> HttpResponse.deserialize(): T {
+suspend inline fun <reified T> HttpResponse.deserialize(): T? {
     return JsonHelper.deserialize(this.bodyAsText())
 }
 
-suspend inline fun <reified T> HttpResponse.deserializeIgnoreKeys(): T {
+suspend inline fun <reified T> HttpResponse.deserializeIgnoreKeys(): T? {
     return JsonHelper.deserializeIgnoreKeys(this.bodyAsText())
 }
 
 suspend inline fun <reified T> HttpResponse.deserializeWhen(
     expectStatusCode: HttpStatusCode = HttpStatusCode.OK,
     shortCircuit: HttpResponse.(HttpStatusCode) -> Unit
-): T {
+): T? {
     if (status == expectStatusCode) {
         return deserialize()
     }
@@ -25,7 +25,7 @@ suspend inline fun <reified T> HttpResponse.deserializeWhen(
 suspend inline fun <reified T> HttpResponse.deserializeIgnoreKeysWhen(
     expectStatusCode: HttpStatusCode = HttpStatusCode.OK,
     shortCircuit: HttpResponse.(HttpStatusCode) -> Unit
-): T {
+): T? {
     if (status == expectStatusCode) {
         return deserializeIgnoreKeys()
     }

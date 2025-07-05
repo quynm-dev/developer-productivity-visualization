@@ -24,8 +24,13 @@ class GithubUserService(
             }
         }
 
-        return response.deserializeIgnoreKeysWhen<UserDto> {
+        val data = response.deserializeIgnoreKeysWhen<UserDto> {
             return AppError.new(GITHUB_ERROR_CODE_FACTORY.INTERNAL_SERVER_ERROR, "Failed to get user").err()
-        }.ok()
+        }
+        if (data == null) {
+            return AppError.new(GITHUB_ERROR_CODE_FACTORY.NOT_FOUND, "User not found").err()
+        }
+
+        return data.ok()
     }
 }

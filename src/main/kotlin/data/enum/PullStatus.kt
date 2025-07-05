@@ -1,11 +1,11 @@
 package com.dpv.data.enum
 
-enum class PullStatus {
+enum class GithubState {
     OPEN,
     CLOSED;
 
     companion object {
-        fun fromString(value: String): PullStatus {
+        fun fromString(value: String): GithubState {
             return entries.find { it.name.equals(value, ignoreCase = true) }!!
         }
     }

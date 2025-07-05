@@ -9,7 +9,7 @@ object JsonHelper {
     val IgnoreKeysJson = Json { ignoreUnknownKeys = true }
     val logger = KotlinLogging.logger {}
 
-    inline fun <reified T> deserialize(key: String, level: Level = Level.ERROR): T {
+    inline fun <reified T> deserialize(key: String, level: Level = Level.ERROR): T? {
         return try {
             Json.decodeFromString(key)
         } catch (ex: SerializationException) {
@@ -18,7 +18,8 @@ object JsonHelper {
         }
     }
 
-    inline fun <reified T> deserializeIgnoreKeys(key: String): T {
+    inline fun <reified T> deserializeIgnoreKeys(key: String): T? {
+        if (key.isBlank() || key == "[]") return null
         return IgnoreKeysJson.decodeFromString(key)
     }
 }

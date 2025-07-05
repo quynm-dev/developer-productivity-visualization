@@ -9,7 +9,7 @@ dpv:
   db:
     username: root
     password: root
-    url: "jdbc:mysql://localhost:3307/dpv-db?rewriteBatchedInserts=true&serverTimezone=UTC"
+    url: "jdbc:mysql://localhost:3307/dpv-db?rewriteBatchedInserts=true&serverTimezone=UTC&allowMultiQueries=true"
     driver: "com.mysql.cj.jdbc.Driver"
 
 github:
