@@ -10,6 +10,8 @@ CREATE TABLE repositories
     issues_url     TEXT                NOT NULL,
     milestones_url TEXT                NOT NULL,
     releases_url   TEXT                NOT NULL,
+    branches_url   TEXT                NOT NULL,
+    comments_url   TEXT                NOT NULL,
     pat            TEXT                NOT NULL,
     last_sync_at   datetime,
     created_at     datetime            NOT NULL DEFAULT CURRENT_TIMESTAMP,

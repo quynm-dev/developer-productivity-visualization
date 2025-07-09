@@ -20,7 +20,7 @@ class GithubCommitService(
     private val githubClient: GithubClient,
 ) : GithubConfiguration(environment) {
     suspend fun getCommits(
-        pat: String, since: LocalDateTime? = null, until: LocalDateTime? = null, url: String,
+        pat: String, since: LocalDateTime? = null, until: LocalDateTime? = null, url: String, branch: String,
         perPage: Int = 30, page: Int = 1
     ): UniResult<List<CommitDto>> {
         val response = githubClient.get(url) {
@@ -33,6 +33,7 @@ class GithubCommitService(
                 until?.let { parameters.append("until", until.format(DateTimeFormatter.ISO_DATE_TIME)) }
                 parameters.append("per_page", perPage.toString())
                 parameters.append("page", page.toString())
+                parameters.append("branch", branch)
             }
         }
 

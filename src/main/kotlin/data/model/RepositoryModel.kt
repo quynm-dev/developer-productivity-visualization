@@ -13,6 +13,8 @@ data class RepositoryModel(
     val issuesUrl: String,
     val milestonesUrl: String,
     val releasesUrl: String,
+    val branchesUrl: String,
+    val commentsUrl: String,
     val pat: String,
     val lastSyncAt: LocalDateTime? = null,
     val createdAt: LocalDateTime,

@@ -2,6 +2,7 @@ package com.dpv.repository
 
 import com.dpv.data.dto.github.CommitDetailDto
 import com.dpv.data.dto.github.CommitDto
+import com.dpv.data.entity.BranchCommits
 import com.dpv.data.entity.CommitEntity
 import com.dpv.data.entity.Commits
 import mu.KotlinLogging
@@ -33,7 +34,7 @@ class CommitRepository {
         }
     }
 
-    suspend fun bulkCreate(commitDtos: List<CommitDetailDto>, repoId: Long): Boolean {
+    suspend fun bulkCreate(commitDtos: List<CommitDetailDto>, repoId: Long, mapBranchNamesCommitDetails: Map<String, List<String>>): Boolean {
         return newSuspendedTransaction {
             logger.info { "[CommitRepository:bulkCreate]" }
             Commits.batchInsert(commitDtos) { commitDto ->
@@ -48,6 +49,16 @@ class CommitRepository {
                 this[Commits.deletions] = commitDto.stats.deletions
                 this[Commits.createdAt] = LocalDateTime.now()
                 this[Commits.updatedAt] = LocalDateTime.now()
+            }.isNotEmpty()
+
+            BranchCommits.batchInsert(mapBranchNamesCommitDetails.entries) { (branchName, commitHashes) ->
+                commitHashes.forEach { hash ->
+                    this[BranchCommits.repoId] = repoId
+                    this[BranchCommits.branchName] = branchName
+                    this[BranchCommits.commitHash] = hash
+                    this[BranchCommits.repoId] = repoId
+                    this[BranchCommits.createdAt] = LocalDateTime.now()
+                }
             }.isNotEmpty()
         }
     }

@@ -20,5 +20,9 @@ data class RepositoryDto(
     val milestonesUrl: String,
     @SerialName("releases_url")
     val releasesUrl: String,
+    @SerialName("branches_url")
+    val branchesUrl: String,
+    @SerialName("comments_url")
+    val commentsUrl: String,
     val owner: UserDto
 )

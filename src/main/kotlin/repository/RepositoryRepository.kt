@@ -53,6 +53,8 @@ class RepositoryRepository {
                 it[issuesUrl] = repo.issuesUrl.substringBefore("{")
                 it[milestonesUrl] = repo.milestonesUrl.substringBefore("{")
                 it[releasesUrl] = repo.releasesUrl.substringBefore("{")
+                it[branchesUrl] = repo.branchesUrl.substringBefore("{")
+                it[commentsUrl] = repo.commentsUrl.substringBefore("{")
                 it[this.pat] = pat
                 it[lastSyncAt] = null
                 it[createdAt] = LocalDateTime.now()
@@ -76,6 +78,8 @@ class RepositoryRepository {
                 it[issuesUrl] = repoModel.issuesUrl
                 it[milestonesUrl] = repoModel.milestonesUrl
                 it[releasesUrl] = repoModel.releasesUrl
+                it[branchesUrl] = repoModel.branchesUrl
+                it[commentsUrl] = repoModel.commentsUrl
                 it[lastSyncAt] = repoModel.lastSyncAt
                 it[updatedAt] = LocalDateTime.now()
             } > 0

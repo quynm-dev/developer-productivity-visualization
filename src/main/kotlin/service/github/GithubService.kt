@@ -23,13 +23,15 @@ class GithubService(
     private val releaseService: ReleaseService,
     private val issueService: IssueService,
     private val milestoneService: MilestoneService,
+    private val branchService: BranchService,
     private val githubRepoService: GithubRepositoryService,
     private val githubCommitService: GithubCommitService,
     private val githubUserService: GithubUserService,
     private val githubPullService: GithubPullService,
     private val githubReleaseService: GithubReleaseService,
     private val githubMilestoneService: GithubMilestoneService,
-    private val githubIssueService: GithubIssueService
+    private val githubIssueService: GithubIssueService,
+    private val githubBranchService: GithubBranchService
 ) : GithubConfiguration(environment) {
     companion object {
         private val logger = KotlinLogging.logger {}
@@ -96,19 +98,71 @@ class GithubService(
         return Unit.ok()
     }
 
-    suspend fun syncGithubResources(repo: RepositoryModel, since: LocalDateTime? = null, until: LocalDateTime? = null): UniResult<GithubResourcesDto> {
-        logger.info { "Sync commits" }
-        val commits = syncGithubDatasWithPagination(
-            apiCall = { page ->
-                githubCommitService.getCommits(repo.pat, since, until, repo.commitsUrl, page = page)
-            }
-        ).getOrElse { syncCommitsErr ->
-            return syncCommitsErr.err()
+    suspend fun syncRepoResourcesWithDB(pat: String, name: String): UniResult<Unit> {
+        val repo = githubRepoService.getRepo(pat, name).getOrElse { getRepoErr ->
+            return getRepoErr.err()
         }
 
+        userService.validateExistence(repo.owner.id).getOrElse { validateExistErr ->
+            if (!validateExistErr.hasCode(GITHUB_ERROR_CODE_FACTORY.NOT_FOUND)) {
+                return validateExistErr.err()
+            }
+
+            userService.create(repo.owner).getOrElse { createUserErr ->
+                return createUserErr.err()
+            }
+        }
+
+        repoService.create(pat, repo).getOrElse { createRepoErr ->
+            return createRepoErr.err()
+        }
+
+        sync(name).getOrElse { syncErr ->
+            return syncErr.err()
+        }
+
+        return Unit.ok()
+    }
+
+    suspend fun syncGithubResources(repo: RepositoryModel, since: LocalDateTime? = null, until: LocalDateTime? = null): UniResult<GithubResourcesDto> {
+        logger.info { "Sync branches" }
+        val branches = syncGithubDatasWithPagination(
+            apiCall = { page ->
+                githubBranchService.getBranches(repo.pat, repo.branchesUrl, page = page)
+            }
+        ).getOrElse { syncBranchesErr ->
+            return syncBranchesErr.err()
+        }
+
+        val commitDetails = mutableListOf<CommitDetailDto>()
+        val mapBranchNamesCommitHashes = mutableMapOf<String, MutableList<String>>()
+        val existedCommitHashes = mutableSetOf<String>()
+
         logger.info { "Sync commit details" }
-        val commitDetails = syncGithubCommitDetailsInBatch(repo.pat, commits).getOrElse { syncGithubCommitDetailsInBatchErr ->
-            return syncGithubCommitDetailsInBatchErr.err()
+        branches.forEach { branch ->
+            val branchCommits = syncGithubDatasWithPagination(
+                apiCall = { page ->
+                    githubCommitService.getCommits(repo.pat, since, until, repo.commitsUrl, branch = branch.name, page = page)
+                }
+            ).getOrElse { syncCommitsErr ->
+                return syncCommitsErr.err()
+            }
+
+            val branchCommitDetails = syncGithubCommitDetailsInBatch(repo.pat, branchCommits).getOrElse { syncGithubCommitDetailsInBatchErr ->
+                return syncGithubCommitDetailsInBatchErr.err()
+            }
+
+            branchCommitDetails.forEach { commit ->
+                if(!existedCommitHashes.contains(commit.sha)) {
+                    commitDetails.add(commit)
+                    existedCommitHashes.add(commit.sha)
+                }
+            }
+
+            if (!mapBranchNamesCommitHashes.containsKey(branch.name)) {
+                mapBranchNamesCommitHashes[branch.name] = mutableListOf()
+            }
+            mapBranchNamesCommitHashes[branch.name]?.addAll(branchCommitDetails.map { it.sha })
         }
 
         logger.info { "Sync pulls" }
@@ -152,12 +206,17 @@ class GithubService(
             commitDetails = commitDetails,
             issues = issues,
             releases = releases,
-            milestones = milestones
+            milestones = milestones,
+            branches = branches,
+            mapBranchNamesCommitHashes = mapBranchNamesCommitHashes
         ).ok()
     }
 
     suspend fun syncResourcesWithDB(repo: RepositoryModel, githubResources: GithubResourcesDto): UniResult<Unit> {
-        syncCommitsResourcesWithDB(repo.pat, githubResources.commitDetails, repo.id).getOrElse { syncCommitsResourcesErr ->
+        syncBranchesResourcesWithDB(githubResources.branches, repo.id).getOrElse { syncBranchesResourcesErr ->
+            return syncBranchesResourcesErr.err()
+        }
+        syncCommitsResourcesWithDB(repo.pat, githubResources.commitDetails, repo.id, githubResources.mapBranchNamesCommitHashes).getOrElse { syncCommitsResourcesErr ->
             return syncCommitsResourcesErr.err()
         }
         syncPullsResourcesWithDB(repo.pat, githubResources.pulls, repo.id).getOrElse { syncPullsResourcesErr ->
@@ -176,7 +235,36 @@ class GithubService(
         return Unit.ok()
     }
 
-    suspend fun syncCommitsResourcesWithDB(pat: String, commits: List<CommitDetailDto>, repoId: Long): UniResult<Unit> {
+    suspend fun syncBranchesResourcesWithDB(branches: List<BranchDto>, repoId: Long): UniResult<Unit> {
+        val newBranches = mutableListOf<BranchDto>()
+        branches.forEach { branch ->
+            val exist = branchService.validateExistence(branch.name, repoId).getOrElse { validateExistenceErr ->
+                if (!validateExistenceErr.hasCode(GITHUB_ERROR_CODE_FACTORY.NOT_FOUND)) {
+                    return validateExistenceErr.err()
+                }
+
+                false
+            }
+
+            if(exist) {
+                branchService.update(branch, repoId).getOrElse { updateErr ->
+                    return updateErr.err()
+                }
+            } else {
+                newBranches.add(branch)
+            }
+        }
+
+        branchService.bulkCreate(newBranches, repoId).getOrElse { bulkCreateErr ->
+            return bulkCreateErr.err()
+        }
+
+        return Unit.ok()
+    }
+
+    suspend fun syncCommitsResourcesWithDB(
+        pat: String, commits: List<CommitDetailDto>, repoId: Long, mapBranchNamesCommitHashes: Map<String, List<String>>
+    ): UniResult<Unit> {
         val existUserIds = mutableListOf<Long>()
         val newCommits = mutableListOf<CommitDetailDto>()
         commits.forEach { commit ->
@@ -203,16 +291,18 @@ class GithubService(
                     return validateExistenceErr.err()
                 }
 
-                newCommits.add(commit)
+                false
             }
             if(exist) {
                 commitService.update(commit.sha, commit).getOrElse { createErr ->
                     return createErr.err()
                 }
+            } else {
+                newCommits.add(commit)
             }
         }
 
-        commitService.bulkCreate(newCommits, repoId).getOrElse { bulkCreateErr ->
+        commitService.bulkCreate(newCommits, repoId, mapBranchNamesCommitHashes).getOrElse { bulkCreateErr ->
             return bulkCreateErr.err()
         }
 
@@ -244,12 +334,14 @@ class GithubService(
                     return validateExistenceErr.err()
                 }
 
-                newPulls.add(pull)
+                false
             }
             if(exist) {
                 pullService.update(pull.id, pull).getOrElse { updateErr ->
                     return updateErr.err()
                 }
+            } else {
+                newPulls.add(pull)
             }
         }
 
@@ -272,12 +364,14 @@ class GithubService(
                     return validateExistenceErr.err()
                 }
 
-                newReleases.add(release)
+                false
             }
             if(exist) {
                 releaseService.update(release.id, release).getOrElse { updateErr ->
                     return updateErr.err()
                 }
+            } else {
+                newReleases.add(release)
             }
         }
 
@@ -296,12 +390,14 @@ class GithubService(
                     return validateExistenceErr.err()
                 }
 
-                newIssues.add(issue)
+                false
             }
             if(exist) {
                 issueService.update(issue.id, issue).getOrElse { updateErr ->
                     return updateErr.err()
                 }
+            } else {
+                newIssues.add(issue)
             }
         }
 
@@ -320,12 +416,14 @@ class GithubService(
                     return validateExistenceErr.err()
                 }
 
-                newMilestones.add(milestone)
+                false
             }
             if(exist) {
                 milestoneService.update(milestone.id, milestone).getOrElse { updateErr ->
                     return updateErr.err()
                 }
+            } else {
+                newMilestones.add(milestone)
             }
         }
 
@@ -334,34 +432,6 @@ class GithubService(
         }
 
         return Unit.ok()
-    }
-
-    suspend fun syncRepoResourcesWithDB(pat: String, name: String): UniResult<RepositoryModel> {
-        val repo = githubRepoService.getRepo(pat, name).getOrElse { getRepoErr ->
-            return getRepoErr.err()
-        }
-
-        userService.validateExistence(repo.owner.id).getOrElse { validateExistErr ->
-            if (!validateExistErr.hasCode(GITHUB_ERROR_CODE_FACTORY.NOT_FOUND)) {
-                return validateExistErr.err()
-            }
-
-            userService.create(repo.owner).getOrElse { createUserErr ->
-                return createUserErr.err()
-            }
-        }
-
-        val repoId = repoService.create(pat, repo).getOrElse { createRepoErr ->
-            return createRepoErr.err()
-        }
-
-        sync(name).getOrElse { syncErr ->
-            return syncErr.err()
-        }
-
-        return repoService.findById(repoId).getOrElse { findByIdErr ->
-            return findByIdErr.err()
-        }.ok()
     }
 
     suspend fun <T> syncGithubDatasWithPagination(

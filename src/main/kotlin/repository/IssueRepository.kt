@@ -2,6 +2,7 @@ package com.dpv.repository
 
 import com.dpv.data.dto.github.IssueDto
 import com.dpv.data.entity.IssueEntity
+import com.dpv.data.entity.IssueUsers
 import com.dpv.data.entity.IssueUsers.issueId
 import com.dpv.data.entity.IssueUsers.userId
 import com.dpv.data.entity.Issues
@@ -83,8 +84,9 @@ class IssueRepository {
                 this[updatedAt] = LocalDateTime.now()
             }.isNotEmpty()
 
+            // TODO: Verify issue user creation
             issueDtos.forEach { issueDto ->
-                Issues.batchInsert(issueDto.assignees) { user ->
+                IssueUsers.batchInsert(issueDto.assignees) { user ->
                     this[issueId] = issueDto.id
                     this[userId] = user.id
                     this[createdAt] = LocalDateTime.now()

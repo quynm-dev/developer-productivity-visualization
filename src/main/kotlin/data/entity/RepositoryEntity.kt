@@ -19,6 +19,8 @@ class RepositoryEntity(id: EntityID<Long>): LongEntity(id) {
     var issuesUrl by Repositories.issuesUrl
     var milestonesUrl by Repositories.milestonesUrl
     var releasesUrl by Repositories.releasesUrl
+    var branchesUrl by Repositories.branchesUrl
+    var commentsUrl by Repositories.commentsUrl
     var pat by Repositories.pat
     var lastSyncAt by Repositories.lastSyncAt
     var createdAt by Repositories.createdAt
@@ -35,6 +37,8 @@ object Repositories: LongIdTable("repositories") {
     val issuesUrl = text("issues_url")
     val milestonesUrl = text("milestones_url")
     val releasesUrl = text("releases_url")
+    val branchesUrl = text("branches_url")
+    val commentsUrl = text("comments_url")
     val pat = text("pat")
     val lastSyncAt = datetime("last_sync_at").nullable().default(null)
     val createdAt = datetime("created_at").defaultExpression(CurrentDateTime)

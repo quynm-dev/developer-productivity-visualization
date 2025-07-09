@@ -26,5 +26,7 @@ data class GithubResourcesDto(
     val commitDetails: List<CommitDetailDto>,
     val issues: List<IssueDto>,
     val releases: List<ReleaseDto>,
-    val milestones: List<MilestoneDto>
+    val milestones: List<MilestoneDto>,
+    val branches: List<BranchDto>,
+    val mapBranchNamesCommitHashes: Map<String, List<String>>,
 )

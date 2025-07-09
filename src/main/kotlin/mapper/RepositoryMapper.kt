@@ -15,6 +15,8 @@ fun RepositoryEntity.toModel(): RepositoryModel {
         issuesUrl = this.issuesUrl,
         milestonesUrl = this.milestonesUrl,
         releasesUrl = this.releasesUrl,
+        branchesUrl = this.branchesUrl,
+        commentsUrl = this.commentsUrl,
         pat = this.pat,
         lastSyncAt = this.lastSyncAt,
         createdAt = this.createdAt,
